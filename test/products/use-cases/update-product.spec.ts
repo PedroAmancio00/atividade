@@ -13,7 +13,7 @@ describe('UpdateProduct', () => {
     name: 'Teste',
     createdAt: new Date('2022-01-03T16:48:04.868'),
     updatedAt: new Date('2022-01-03T16:48:04.868'),
-    deleted: false,
+    deletedAt: null,
     hasId: null,
     remove: null,
     save: null,

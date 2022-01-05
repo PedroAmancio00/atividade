@@ -67,7 +67,6 @@ describe('@GET /products/read-product', () => {
       .createQueryBuilder()
       .select('*')
       .from(ProductEntity, 'products')
-      .where('products.deleted = false')
       .limit(params.limit)
       .offset((params.page - 1) * params.limit)
       .execute();
