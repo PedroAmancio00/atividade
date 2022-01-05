@@ -14,10 +14,10 @@ export class DeleteProduct implements IDeleteProduct {
 
   async execute(params: IDeleteProduct.Params): IDeleteProduct.Response {
     const product = await this.productRepository.findOne({
-      productId: params,
+      id: params,
     });
     if (!product) throw new ProductNotFoundException();
-    await this.productRepository.softDelete(product.productId);
+    await this.productRepository.softDelete(product.id);
     return { message: 'Product deleted' };
   }
 }

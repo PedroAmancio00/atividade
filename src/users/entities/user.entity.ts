@@ -1,10 +1,9 @@
-import { BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, Entity } from 'typeorm';
+
+import { BaseEntity } from '../../common/dtos/entities/base.entity';
 
 @Entity('users', { schema: 'public' })
 export class UserEntity extends BaseEntity {
-  @PrimaryGeneratedColumn('uuid')
-  userId: string;
-
   @Column('character varying', { length: 200 })
   name: string;
 
@@ -13,10 +12,4 @@ export class UserEntity extends BaseEntity {
 
   @Column('character varying')
   password: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

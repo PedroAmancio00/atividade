@@ -6,6 +6,6 @@ export interface IUpdateProduct {
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace IUpdateProduct {
-  export type Params = UpdateProductDto;
+  export type Params = { updateProductDto: UpdateProductDto; id: string };
   export type Response = Promise<{ message: string }>;
 }
