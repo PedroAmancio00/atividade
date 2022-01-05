@@ -1,11 +1,9 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { PaginatedResults } from '../../common/dtos/paginated-results.dto';
 
 import { QueryProductDto } from '../dtos/query-product';
 import { ResponsePaginatedReadProductsDto } from '../dtos/response-paginated-read-product';
 import { ResponseReadProductsDto } from '../dtos/response-read-products';
-
 import { ReadProduct } from '../use-cases/read-product';
 
 @Controller('products')

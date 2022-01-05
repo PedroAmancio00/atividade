@@ -1,10 +1,9 @@
 import { HttpStatus, INestApplication, UnauthorizedException } from '@nestjs/common';
-import * as faker from 'faker';
 import * as request from 'supertest';
 import { Connection } from 'typeorm';
+
 import { ProductEntity } from '../../../src/products/entities/product.entity';
 import { ProductNotFoundException } from '../../../src/products/exceptions/product-not-found';
-
 import { createApp } from '../../test-utils/create-app';
 
 describe('@DELETE /products/delete-product', () => {
