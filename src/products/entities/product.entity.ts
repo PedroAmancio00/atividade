@@ -1,22 +1,12 @@
-import { BaseEntity, Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, Entity } from 'typeorm';
+
+import { BaseEntity } from '../../common/dtos/entities/base.entity';
 
 @Entity('products', { schema: 'public' })
 export class ProductEntity extends BaseEntity {
-  @PrimaryGeneratedColumn('uuid')
-  productId: string;
-
   @Column('character varying', { length: 200 })
   name: string;
 
   @Column('decimal', { precision: 9, scale: 2 })
   price: number;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @DeleteDateColumn()
-  deletedAt: Date;
 }

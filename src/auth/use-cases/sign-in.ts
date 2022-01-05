@@ -12,7 +12,7 @@ export class SignIn implements ISignIn {
   async execute(params: ISignIn.Params): ISignIn.Response {
     const user = await this.validateUser.execute(params);
     if (!user) throw new InvalidCredentialsException();
-    const payload = { userId: user.userId, email: user.email };
+    const payload = { id: user.id, email: user.email };
     return {
       accessToken: this.jwtService.sign(payload),
     };

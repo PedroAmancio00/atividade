@@ -42,7 +42,7 @@ ALTER TABLE public.users OWNER TO admin_atividade;
 CREATE TABLE public.products (
 	id uuid NOT NULL,
 	alternative_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ,
-	user_id uuid NOT NULL,
+	userId uuid NOT NULL,
 	name varchar(200) NOT NULL,
 	price decimal(9,2) NOT NULL,
 	created_date timestamp with time zone NOT NULL,
@@ -54,4 +54,11 @@ CREATE TABLE public.products (
 
 -- ddl-end --
 ALTER TABLE public.products OWNER TO admin_atividade;
+-- ddl-end --
+
+-- object: fk_users_products | type: CONSTRAINT --
+-- ALTER TABLE public.products DROP CONSTRAINT IF EXISTS fk_users_products CASCADE;
+ALTER TABLE public.products ADD CONSTRAINT fk_users_products FOREIGN KEY (userId)
+REFERENCES public.users (id) MATCH FULL
+ON DELETE RESTRICT ON UPDATE RESTRICT;
 -- ddl-end --
