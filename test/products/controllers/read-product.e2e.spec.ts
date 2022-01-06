@@ -4,15 +4,27 @@ import { Connection } from 'typeorm';
 
 import { ProductEntity } from '../../../src/products/entities/product.entity';
 import { createApp } from '../../test-utils/create-app';
+import { CreateUserDtoGenerator } from '../../users/generator/create-user-dto.generator';
 
 describe('@GET /products/read-product', () => {
   let app: INestApplication;
   let connection: Connection;
+  let accessToken: string;
+  jest.setTimeout(50000);
 
   beforeAll(async () => {
     const { app: application, connection: conn } = await createApp();
     app = application;
     connection = conn;
+    const { item: createUserDto } = CreateUserDtoGenerator.generate();
+    await request(app.getHttpServer()).post(`/users/create-user`).send(createUserDto);
+    const params = { email: createUserDto.email, password: createUserDto.password };
+    await request(app.getHttpServer())
+      .post(`/auth/sign-in`)
+      .send(params)
+      .then(({ body }) => {
+        accessToken = body.accessToken;
+      });
   });
 
   afterAll(async () => {
@@ -30,15 +42,6 @@ describe('@GET /products/read-product', () => {
   });
 
   it('should return BadRequestException if data do not pass the validation pipe and user is authenticated', async () => {
-    const paramsLogin = { email: 'teste@sof.to', password: 'desafio1234' };
-    let accessToken: string;
-    await request(app.getHttpServer())
-      .post(`/auth/sign-in`)
-      .send(paramsLogin)
-      .then(({ body }) => {
-        accessToken = body.accessToken;
-      });
-
     await request(app.getHttpServer())
       .get(`/products/read-product`)
       .send()
@@ -54,14 +57,6 @@ describe('@GET /products/read-product', () => {
   });
 
   it('should return the products if everything is okay', async () => {
-    const paramsLogin = { email: 'teste@sof.to', password: 'desafio1234' };
-    let accessToken: string;
-    await request(app.getHttpServer())
-      .post(`/auth/sign-in`)
-      .send(paramsLogin)
-      .then(({ body }) => {
-        accessToken = body.accessToken;
-      });
     const params = { page: 2, limit: 5 };
     let products = await connection
       .createQueryBuilder()
@@ -71,7 +66,7 @@ describe('@GET /products/read-product', () => {
       .offset((params.page - 1) * params.limit)
       .execute();
     products = products.map((product: ProductEntity) => {
-      return { productId: product.productId, name: product.name };
+      return { id: product.id, name: product.name };
     });
     await request(app.getHttpServer())
       .get(`/products/read-product`)

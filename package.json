@@ -29,11 +29,13 @@
     "@nestjs/passport": "^8.0.1",
     "@nestjs/platform-express": "^8.0.0",
     "@nestjs/platform-fastify": "^8.2.4",
+    "@nestjs/swagger": "^5.1.5",
     "@nestjs/typeorm": "^8.0.2",
     "bcrypt": "^5.0.1",
     "class-transformer": "0.4.0",
     "class-validator": "^0.13.2",
     "faker": "^5.5.3",
+    "fastify-swagger": "^4.13.0",
     "jest-mock-extended": "^2.0.4",
     "mockdate": "^3.0.5",
     "mysql2": "^2.3.3",
@@ -44,6 +46,7 @@
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
+    "swagger-ui-express": "^4.3.0",
     "typeorm": "^0.2.41"
   },
   "devDependencies": {

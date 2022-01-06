@@ -1,20 +1,19 @@
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import * as faker from 'faker';
 import * as request from 'supertest';
-import { Connection } from 'typeorm';
 
-import { InvalidCredentialsException } from '../../../src/auth/exceptions/invalid-credentials-exception';
+import { InvalidCredentialsException } from '../../../src/users/exceptions/invalid-credentials-exception';
 import { createApp } from '../../test-utils/create-app';
+import { CreateUserDtoGenerator } from '../../users/generator/create-user-dto.generator';
 
 describe('@POST /auth/sign-in', () => {
   let app: INestApplication;
-  let connection: Connection;
+  const { item: createUserDto } = CreateUserDtoGenerator.generate();
+  jest.setTimeout(50000);
 
   beforeAll(async () => {
-    const { app: application, connection: conn } = await createApp();
+    const { app: application } = await createApp();
     app = application;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    connection = conn;
+    await request(app.getHttpServer()).post(`/users/create-user`).send(createUserDto);
   });
 
   afterAll(async () => {
@@ -46,7 +45,7 @@ describe('@POST /auth/sign-in', () => {
   });
 
   it('should return InvalidCredentialsException if the password is wrong', async () => {
-    const params = { email: 'teste@sof.to', password: 'teste' };
+    const params = { email: createUserDto.email, password: createUserDto.password + 'errado' };
     await request(app.getHttpServer())
       .post(`/auth/sign-in`)
       .send(params)
@@ -57,7 +56,7 @@ describe('@POST /auth/sign-in', () => {
   });
 
   it('should return InvalidCredentialsException if the user does not exist', async () => {
-    const params = { email: faker.internet.email().toLowerCase(), password: 'teste' };
+    const params = { email: createUserDto.email + 'errado', password: createUserDto.password };
     await request(app.getHttpServer())
       .post(`/auth/sign-in`)
       .send(params)
@@ -68,7 +67,7 @@ describe('@POST /auth/sign-in', () => {
   });
 
   it('should return an access token if everything is okay', async () => {
-    const params = { email: 'teste@sof.to', password: 'desafio1234' };
+    const params = { email: createUserDto.email, password: createUserDto.password };
     await request(app.getHttpServer())
       .post(`/auth/sign-in`)
       .send(params)

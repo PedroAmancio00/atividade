@@ -1,8 +1,9 @@
 import { Body, Controller, Post, UseGuards, ValidationPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ApiBody, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
+
 import { GetUser } from '../../auth/get-user.decorator';
 import { UserEntity } from '../../users/entities/user.entity';
-import { ICreateProduct } from '../contracts/create-product';
 import { CreateProductDto } from '../dtos/create-product';
 import { ResponseReadProductsDto } from '../dtos/response-read-products';
 import { CreateProduct } from '../use-cases/create-product';
@@ -11,6 +12,9 @@ import { CreateProduct } from '../use-cases/create-product';
 export class CreateProductController {
   constructor(private createProduct: CreateProduct) {}
 
+  @ApiTags('Products')
+  @ApiCreatedResponse({ type: ResponseReadProductsDto })
+  @ApiBody({ type: CreateProductDto })
   @UseGuards(AuthGuard())
   @Post('/create-product')
   async handleCreateProduct(

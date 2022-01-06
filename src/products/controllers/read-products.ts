@@ -1,5 +1,6 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import { QueryProductDto } from '../dtos/query-product';
 import { ResponsePaginatedReadProductsDto } from '../dtos/response-paginated-read-product';
@@ -10,6 +11,8 @@ import { ReadProduct } from '../use-cases/read-product';
 export class ReadProductController {
   constructor(private readProduct: ReadProduct) {}
 
+  @ApiTags('Products')
+  @ApiOkResponse({ type: ResponsePaginatedReadProductsDto })
   @UseGuards(AuthGuard())
   @Get('/read-product')
   async handleReadProduct(@Query() queryProductDto: QueryProductDto): Promise<ResponsePaginatedReadProductsDto> {

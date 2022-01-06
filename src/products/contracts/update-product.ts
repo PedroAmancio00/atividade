@@ -1,3 +1,4 @@
+import { UserEntity } from '../../users/entities/user.entity';
 import { UpdateProductDto } from '../dtos/update-product';
 import { ProductEntity } from '../entities/product.entity';
 
@@ -6,6 +7,6 @@ export interface IUpdateProduct {
 }
 
 export namespace IUpdateProduct {
-  export type Params = { updateProductDto: UpdateProductDto; id: string };
+  export type Params = { updateProductDto: UpdateProductDto; id: string; user: UserEntity };
   export type Response = Promise<ProductEntity>;
 }

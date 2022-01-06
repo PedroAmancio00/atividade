@@ -1,14 +1,16 @@
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import * as faker from 'faker';
 import { Connection } from 'typeorm';
+
+import { UserEntity } from '../../../src/users/entities/user.entity';
 import { EmailAlreadyExistsException } from '../../../src/users/exceptions/email-already-exists';
 import { createApp } from '../../test-utils/create-app';
-import { UserEntity } from '../../../src/users/entities/user.entity';
+import { CreateUserDtoGenerator } from '../generator/create-user-dto.generator';
 
 describe('@POST /users/create-user', () => {
   let app: INestApplication;
   let connection: Connection;
+  jest.setTimeout(50000);
 
   beforeAll(async () => {
     const { app: application, connection: conn } = await createApp();
@@ -51,10 +53,11 @@ describe('@POST /users/create-user', () => {
   });
 
   it('should return EmailConflictException if email already exists', async () => {
-    const params = { email: 'teste@sof.to', name: 'teste', password: 'teste' };
+    const { item: createUserDto } = CreateUserDtoGenerator.generate();
+    await request(app.getHttpServer()).post(`/users/create-user`).send(createUserDto);
     await request(app.getHttpServer())
       .post(`/users/create-user`)
-      .send(params)
+      .send(createUserDto)
       .expect(({ status, body }) => {
         expect(status).toBe(HttpStatus.CONFLICT);
         expect(body.errors).toStrictEqual(new EmailAlreadyExistsException().message);
@@ -62,21 +65,21 @@ describe('@POST /users/create-user', () => {
   });
 
   it('should create user if everything is okay', async () => {
-    const params = { email: faker.internet.email().toLowerCase(), name: `${faker.name.firstName()}ab`, password: 'teste' };
+    const { item: createUserDto } = CreateUserDtoGenerator.generate();
     await request(app.getHttpServer())
       .post(`/users/create-user`)
-      .send(params)
+      .send(createUserDto)
       .expect(({ status, body }) => {
         expect(status).toBe(HttpStatus.CREATED);
-        expect(body).toStrictEqual({ message: 'User created' });
+        expect(body).toBeDefined();
       });
     const validateUser = await connection
       .createQueryBuilder()
       .select('*')
       .from(UserEntity, 'users')
-      .where('users.email =:email', { email: params.email })
+      .where('users.email =:email', { email: createUserDto.email })
       .execute();
-    expect(validateUser[0].email).toBe(params.email);
-    expect(validateUser[0].name).toBe(params.name);
+    expect(validateUser[0].email).toBe(createUserDto.email);
+    expect(validateUser[0].name).toBe(createUserDto.name);
   });
 });

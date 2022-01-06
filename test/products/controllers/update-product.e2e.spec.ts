@@ -1,20 +1,42 @@
 import { HttpStatus, INestApplication, UnauthorizedException } from '@nestjs/common';
-import * as faker from 'faker';
 import * as request from 'supertest';
 import { Connection } from 'typeorm';
+import { v4 as uuid } from 'uuid';
+
 import { ProductEntity } from '../../../src/products/entities/product.entity';
 import { ProductNotFoundException } from '../../../src/products/exceptions/product-not-found';
-
 import { createApp } from '../../test-utils/create-app';
+import { CreateUserDtoGenerator } from '../../users/generator/create-user-dto.generator';
+import { CreateProductDtoGenerator } from '../generator/create-product-dto.generator';
 
 describe('@PATCH /products/update-product', () => {
   let app: INestApplication;
   let connection: Connection;
+  let accessToken: string;
+  let product: any;
+  jest.setTimeout(50000);
 
   beforeAll(async () => {
     const { app: application, connection: conn } = await createApp();
     app = application;
     connection = conn;
+    const { item: createUserDto } = CreateUserDtoGenerator.generate();
+    const { item: createProductDto } = CreateProductDtoGenerator.generate();
+    await request(app.getHttpServer()).post(`/users/create-user`).send(createUserDto);
+    const params = { email: createUserDto.email, password: createUserDto.password };
+    await request(app.getHttpServer())
+      .post(`/auth/sign-in`)
+      .send(params)
+      .then(({ body }) => {
+        accessToken = body.accessToken;
+      });
+    await request(app.getHttpServer())
+      .post(`/products/create-product`)
+      .send(createProductDto)
+      .auth(accessToken, { type: 'bearer' })
+      .expect((body) => {
+        product = JSON.parse(body.text);
+      });
   });
 
   afterAll(async () => {
@@ -22,10 +44,9 @@ describe('@PATCH /products/update-product', () => {
   });
 
   it('should return UnauthorizedException if user does not authenticate', async () => {
-    const params = { name: 'teste' };
     await request(app.getHttpServer())
-      .patch(`/products/update-product`)
-      .send(params)
+      .patch(`/products/update-product/${product.id}`)
+      .send()
       .expect(({ status, body }) => {
         expect(status).toBe(HttpStatus.UNAUTHORIZED);
         expect(body.errors).toStrictEqual(new UnauthorizedException().message);
@@ -33,18 +54,8 @@ describe('@PATCH /products/update-product', () => {
   });
 
   it('should return BadRequestException if data do not pass the validation pipe and user is authenticated', async () => {
-    const paramsLogin = { email: 'teste@sof.to', password: 'desafio1234' };
-    let accessToken: string;
     await request(app.getHttpServer())
-      .post(`/auth/sign-in`)
-      .send(paramsLogin)
-      .then(({ body }) => {
-        accessToken = body.accessToken;
-      });
-    console.log(accessToken);
-
-    await request(app.getHttpServer())
-      .patch(`/products/update-product`)
+      .patch(`/products/update-product/${product.id}`)
       .send()
       .auth(accessToken, { type: 'bearer' })
       .expect(({ status, body }) => {
@@ -57,25 +68,22 @@ describe('@PATCH /products/update-product', () => {
             'must be shorter than or equal to 200 characters',
             'must be longer than or equal to 2 characters',
           ],
-          productId: ['should not be empty', 'must be a UUID'],
+          price: [
+            'should not be empty',
+            'must be a number conforming to the specified constraints',
+            'must not be less than 0',
+            'must not be greater than 9999999.99',
+          ],
         });
       });
   });
 
   it('should return ProductNotFoundException if uuid is wrong', async () => {
-    const paramsLogin = { email: 'teste@sof.to', password: 'desafio1234' };
-    let accessToken: string;
+    const id = uuid();
+    const { item: updateProductDto } = CreateProductDtoGenerator.generate();
     await request(app.getHttpServer())
-      .post(`/auth/sign-in`)
-      .send(paramsLogin)
-      .then(({ body }) => {
-        accessToken = body.accessToken;
-      });
-
-    const params = { name: `${faker.commerce.productName()}ab`, productId: '6e981fad-4cb0-4153-acfc-8d1c1a6bc136' };
-    await request(app.getHttpServer())
-      .patch(`/products/update-product`)
-      .send(params)
+      .patch(`/products/update-product/${id}`)
+      .send(updateProductDto)
       .auth(accessToken, { type: 'bearer' })
       .expect(({ status, body }) => {
         expect(status).toBe(HttpStatus.NOT_FOUND);
@@ -84,30 +92,22 @@ describe('@PATCH /products/update-product', () => {
   });
 
   it('should return Product updated if everything is okay', async () => {
-    const paramsLogin = { email: 'teste@sof.to', password: 'desafio1234' };
-    let accessToken: string;
+    const { item: updateProductDto } = CreateProductDtoGenerator.generate();
     await request(app.getHttpServer())
-      .post(`/auth/sign-in`)
-      .send(paramsLogin)
-      .then(({ body }) => {
-        accessToken = body.accessToken;
-      });
-
-    const params = { name: `${faker.commerce.productName()}ab`, productId: '7a56309c-7cdb-4d03-8adb-efc717597b03' };
-    await request(app.getHttpServer())
-      .patch(`/products/update-product`)
-      .send(params)
+      .patch(`/products/update-product/${product.id}`)
+      .send(updateProductDto)
       .auth(accessToken, { type: 'bearer' })
       .expect(({ status, body }) => {
         expect(status).toBe(HttpStatus.OK);
-        expect(body).toStrictEqual({ message: 'Product updated' });
+        expect(body).toBeDefined();
       });
     const validateProduct = await connection
       .createQueryBuilder()
       .select('*')
       .from(ProductEntity, 'products')
-      .where('products.productId =:productId', { productId: params.productId })
+      .where('products.id =:id', { id: product.id })
       .execute();
-    expect(validateProduct[0].name).toBe(params.name);
+    expect(validateProduct[0].name).toBe(updateProductDto.name);
+    expect(validateProduct[0].price).toBe(String(updateProductDto.price));
   });
 });
