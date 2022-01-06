@@ -18,6 +18,5 @@ export class DeleteProduct implements IDeleteProduct {
     });
     if (!product) throw new ProductNotFoundException();
     await this.productRepository.softDelete(product.id);
-    return { message: 'Product deleted' };
   }
 }

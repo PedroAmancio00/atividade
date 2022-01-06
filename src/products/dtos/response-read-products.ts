@@ -3,8 +3,11 @@ import { BaseDto } from '../../common/dtos/base.dto';
 
 export class ResponseReadProductsDto extends BaseDto {
   @Expose()
-  productId: string;
+  id: string;
 
   @Expose()
   name: string;
+
+  @Expose()
+  price: string;
 }

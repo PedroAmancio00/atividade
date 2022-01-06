@@ -20,7 +20,6 @@ export class UpdateProduct implements IUpdateProduct {
     });
     if (!product) throw new ProductNotFoundException();
     product.name = name;
-    await this.productRepository.save(product);
-    return { message: 'Product updated' };
+    return await this.productRepository.save(product);
   }
 }

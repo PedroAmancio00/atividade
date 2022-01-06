@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
-import { UsersModule } from '../users/users.module';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+
+import { UsersModule } from '../users/users.module';
 import { SignInController } from './controllers/sign-in';
 import { JwtStrategy } from './jwt.strategy';
 import { SignIn } from './use-cases/sign-in';
-import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [

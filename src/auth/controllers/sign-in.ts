@@ -1,4 +1,5 @@
 import { Body, Controller, Post, ValidationPipe } from '@nestjs/common';
+import { ISignIn } from '../contracts/sign-in';
 
 import { SignInDto } from '../dtos/sign-in';
 import { SignIn } from '../use-cases/sign-in';
@@ -8,7 +9,7 @@ export class SignInController {
   constructor(private signIn: SignIn) {}
 
   @Post('/sign-in')
-  async handleConfirmUserAccount(@Body(ValidationPipe) signInDto: SignInDto) {
+  async handleConfirmUserAccount(@Body(ValidationPipe) signInDto: SignInDto): ISignIn.Response {
     return this.signIn.execute({
       ...signInDto,
     });
