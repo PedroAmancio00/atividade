@@ -3,6 +3,7 @@ import * as request from 'supertest';
 import { Connection } from 'typeorm';
 
 import { ProductEntity } from '../../../src/products/entities/product.entity';
+import { UserEntity } from '../../../src/users/entities/user.entity';
 import { createApp } from '../../test-utils/create-app';
 import { CreateUserDtoGenerator } from '../../users/generator/create-user-dto.generator';
 import { CreateProductDtoGenerator } from '../generator/create-product-dto.generator';
@@ -12,6 +13,7 @@ describe('@GET /products/read-product', () => {
   let connection: Connection;
   let accessToken: string;
   let product: ProductEntity;
+  let user: UserEntity;
   jest.setTimeout(50000);
 
   beforeAll(async () => {
@@ -28,7 +30,7 @@ describe('@GET /products/read-product', () => {
         accessToken = body.accessToken;
       });
 
-    const { list: createProductDto } = CreateProductDtoGenerator.generate(5);
+    const { list: createProductDto } = CreateProductDtoGenerator.generate(6);
     await request(app.getHttpServer()).post(`/products/create-product`).send(createProductDto[0]).auth(accessToken, { type: 'bearer' });
     await request(app.getHttpServer()).post(`/products/create-product`).send(createProductDto[1]).auth(accessToken, { type: 'bearer' });
     await request(app.getHttpServer()).post(`/products/create-product`).send(createProductDto[2]).auth(accessToken, { type: 'bearer' });
@@ -40,6 +42,22 @@ describe('@GET /products/read-product', () => {
       .then((body) => {
         product = JSON.parse(body.text);
       });
+
+    const { item: createUserDto2 } = CreateUserDtoGenerator.generate();
+    await request(app.getHttpServer())
+      .post(`/users/create-user`)
+      .send(createUserDto2)
+      .then((body) => {
+        user = JSON.parse(body.text);
+      });
+    const params2 = { email: createUserDto.email, password: createUserDto.password };
+    await request(app.getHttpServer())
+      .post(`/auth/sign-in`)
+      .send(params2)
+      .then(({ body }) => {
+        accessToken = body.accessToken;
+      });
+    await request(app.getHttpServer()).post(`/products/create-product`).send(createProductDto[5]).auth(accessToken, { type: 'bearer' });
   });
 
   afterAll(async () => {
@@ -90,11 +108,32 @@ describe('@GET /products/read-product', () => {
       });
   });
 
-  it('should return the products filtered if everything is okay and filter was provided', async () => {
+  it('should return the products filtered if everything is okay and name filter was provided', async () => {
     const params = { page: 1, limit: 3, sortBy: 'price.ASC', nameFilter: product.name };
     let products: ProductEntity[] = await connection.createQueryBuilder().select('*').from(ProductEntity, 'products').execute();
     products = products.filter((productF) => {
       if (productF.name === product.name) return product;
+    });
+    products = products.sort((a: ProductEntity, b: ProductEntity) => (a.price < b.price ? -1 : 1));
+    products = products.slice(0, 3);
+    const productsMaped = products.map((product: ProductEntity) => {
+      return { id: product.id, name: product.name, price: String(product.price) };
+    });
+    await request(app.getHttpServer())
+      .get(`/products/read-product`)
+      .query(params)
+      .auth(accessToken, { type: 'bearer' })
+      .expect(({ status, body }) => {
+        expect(status).toBe(HttpStatus.OK);
+        expect(body.rows).toStrictEqual(productsMaped);
+      });
+  });
+
+  it('should return the products filtered if everything is okay and user filter was provided', async () => {
+    const params = { page: 1, limit: 3, sortBy: 'price.ASC', userFilter: user.id };
+    let products: any = await connection.createQueryBuilder().select('*').from(ProductEntity, 'products').execute();
+    products = products.filter((productF: any) => {
+      if (String(productF?.userid) === user.id) return product;
     });
     products = products.sort((a: ProductEntity, b: ProductEntity) => (a.price < b.price ? -1 : 1));
     products = products.slice(0, 3);

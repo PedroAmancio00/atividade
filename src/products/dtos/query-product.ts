@@ -27,4 +27,9 @@ export class QueryProductDto {
   @IsString()
   @IsOptional()
   nameFilter?: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  userFilter?: string;
 }
