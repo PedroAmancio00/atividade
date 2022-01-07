@@ -12,7 +12,6 @@ export class ReadProduct implements IReadProduct {
   ) {}
 
   async execute(params: IReadProduct.Params): IReadProduct.Response {
-    const { limit, page } = params;
-    return this.productRepository.readProduct(limit, page);
+    return this.productRepository.readProduct(params);
   }
 }

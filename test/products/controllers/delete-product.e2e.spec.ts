@@ -34,7 +34,7 @@ describe('@DELETE /products/delete-product', () => {
       .post(`/products/create-product`)
       .send(createProductDto)
       .auth(accessToken, { type: 'bearer' })
-      .expect((body) => {
+      .then((body) => {
         product = JSON.parse(body.text);
       });
   });

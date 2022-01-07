@@ -13,11 +13,11 @@ describe('CreateProduct', () => {
   const { item: product2 } = ProductEntityGenerator.generate();
   const mockProducts: [ProductEntity[], number] = [[product1, product2], 2];
 
-  const params = { page: 1, limit: 5 };
+  const params = { page: 1, limit: 5, sortBy: 'price.ASC' };
 
   it('should read the products if everything is correct', async () => {
     mockProductRepository.readProduct.mockResolvedValueOnce(mockProducts);
     await expect(sut.execute(params)).resolves.toStrictEqual(mockProducts);
-    expect(mockProductRepository.readProduct).toHaveBeenCalledWith(params.limit, params.page);
+    expect(mockProductRepository.readProduct).toHaveBeenCalledWith({ limit: params.limit, page: params.page, sortBy: params.sortBy });
   });
 });
