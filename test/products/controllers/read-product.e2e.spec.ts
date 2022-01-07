@@ -3,16 +3,61 @@ import * as request from 'supertest';
 import { Connection } from 'typeorm';
 
 import { ProductEntity } from '../../../src/products/entities/product.entity';
+import { UserEntity } from '../../../src/users/entities/user.entity';
 import { createApp } from '../../test-utils/create-app';
+import { CreateUserDtoGenerator } from '../../users/generator/create-user-dto.generator';
+import { CreateProductDtoGenerator } from '../generator/create-product-dto.generator';
 
 describe('@GET /products/read-product', () => {
   let app: INestApplication;
   let connection: Connection;
+  let accessToken: string;
+  let product: ProductEntity;
+  let user: UserEntity;
+  jest.setTimeout(50000);
 
   beforeAll(async () => {
     const { app: application, connection: conn } = await createApp();
     app = application;
     connection = conn;
+    const { item: createUserDto } = CreateUserDtoGenerator.generate();
+    await request(app.getHttpServer()).post(`/users/create-user`).send(createUserDto);
+    const params = { email: createUserDto.email, password: createUserDto.password };
+    await request(app.getHttpServer())
+      .post(`/auth/sign-in`)
+      .send(params)
+      .then(({ body }) => {
+        accessToken = body.accessToken;
+      });
+
+    const { list: createProductDto } = CreateProductDtoGenerator.generate(6);
+    await request(app.getHttpServer()).post(`/products/create-product`).send(createProductDto[0]).auth(accessToken, { type: 'bearer' });
+    await request(app.getHttpServer()).post(`/products/create-product`).send(createProductDto[1]).auth(accessToken, { type: 'bearer' });
+    await request(app.getHttpServer()).post(`/products/create-product`).send(createProductDto[2]).auth(accessToken, { type: 'bearer' });
+    await request(app.getHttpServer()).post(`/products/create-product`).send(createProductDto[3]).auth(accessToken, { type: 'bearer' });
+    await request(app.getHttpServer())
+      .post(`/products/create-product`)
+      .send(createProductDto[4])
+      .auth(accessToken, { type: 'bearer' })
+      .then((body) => {
+        product = JSON.parse(body.text);
+      });
+
+    const { item: createUserDto2 } = CreateUserDtoGenerator.generate();
+    await request(app.getHttpServer())
+      .post(`/users/create-user`)
+      .send(createUserDto2)
+      .then((body) => {
+        user = JSON.parse(body.text);
+      });
+    const params2 = { email: createUserDto.email, password: createUserDto.password };
+    await request(app.getHttpServer())
+      .post(`/auth/sign-in`)
+      .send(params2)
+      .then(({ body }) => {
+        accessToken = body.accessToken;
+      });
+    await request(app.getHttpServer()).post(`/products/create-product`).send(createProductDto[5]).auth(accessToken, { type: 'bearer' });
   });
 
   afterAll(async () => {
@@ -30,15 +75,6 @@ describe('@GET /products/read-product', () => {
   });
 
   it('should return BadRequestException if data do not pass the validation pipe and user is authenticated', async () => {
-    const paramsLogin = { email: 'teste@sof.to', password: 'desafio1234' };
-    let accessToken: string;
-    await request(app.getHttpServer())
-      .post(`/auth/sign-in`)
-      .send(paramsLogin)
-      .then(({ body }) => {
-        accessToken = body.accessToken;
-      });
-
     await request(app.getHttpServer())
       .get(`/products/read-product`)
       .send()
@@ -47,31 +83,20 @@ describe('@GET /products/read-product', () => {
         expect(status).toBe(HttpStatus.BAD_REQUEST);
 
         expect(body.errors).toStrictEqual({
-          page: ['must be a number conforming to the specified constraints', 'must be a positive number'],
-          limit: ['must be a number conforming to the specified constraints', 'must be a positive number'],
+          page: ['should not be empty', 'must be a number conforming to the specified constraints', 'must be a positive number'],
+          limit: ['should not be empty', 'must be a number conforming to the specified constraints', 'must be a positive number'],
+          sortBy: ['should not be empty', 'must match /[a-z]+\\.(asc|desc)/i regular expression', 'must be a string'],
         });
       });
   });
 
-  it('should return the products if everything is okay', async () => {
-    const paramsLogin = { email: 'teste@sof.to', password: 'desafio1234' };
-    let accessToken: string;
-    await request(app.getHttpServer())
-      .post(`/auth/sign-in`)
-      .send(paramsLogin)
-      .then(({ body }) => {
-        accessToken = body.accessToken;
-      });
-    const params = { page: 2, limit: 5 };
-    let products = await connection
-      .createQueryBuilder()
-      .select('*')
-      .from(ProductEntity, 'products')
-      .limit(params.limit)
-      .offset((params.page - 1) * params.limit)
-      .execute();
-    products = products.map((product: ProductEntity) => {
-      return { productId: product.productId, name: product.name };
+  it('should return the products if everything is okay and filter was not provided', async () => {
+    const params = { page: 1, limit: 3, sortBy: 'price.ASC' };
+    let products: ProductEntity[] = await connection.createQueryBuilder().select('*').from(ProductEntity, 'products').execute();
+    products = products.sort((a: ProductEntity, b: ProductEntity) => a.price - b.price);
+    products = products.slice(0, 3);
+    const productsMaped = products.map((product: ProductEntity) => {
+      return { id: product.id, name: product.name, price: String(product.price) };
     });
     await request(app.getHttpServer())
       .get(`/products/read-product`)
@@ -79,7 +104,49 @@ describe('@GET /products/read-product', () => {
       .auth(accessToken, { type: 'bearer' })
       .expect(({ status, body }) => {
         expect(status).toBe(HttpStatus.OK);
-        expect(body.rows).toStrictEqual(products);
+        expect(body.rows).toStrictEqual(productsMaped);
+      });
+  });
+
+  it('should return the products filtered if everything is okay and name filter was provided', async () => {
+    const params = { page: 1, limit: 3, sortBy: 'price.ASC', nameFilter: product.name };
+    let products: ProductEntity[] = await connection.createQueryBuilder().select('*').from(ProductEntity, 'products').execute();
+    products = products.filter((productF) => {
+      if (productF.name === product.name) return product;
+    });
+    products = products.sort((a: ProductEntity, b: ProductEntity) => (a.price < b.price ? -1 : 1));
+    products = products.slice(0, 3);
+    const productsMaped = products.map((product: ProductEntity) => {
+      return { id: product.id, name: product.name, price: String(product.price) };
+    });
+    await request(app.getHttpServer())
+      .get(`/products/read-product`)
+      .query(params)
+      .auth(accessToken, { type: 'bearer' })
+      .expect(({ status, body }) => {
+        expect(status).toBe(HttpStatus.OK);
+        expect(body.rows).toStrictEqual(productsMaped);
+      });
+  });
+
+  it('should return the products filtered if everything is okay and user filter was provided', async () => {
+    const params = { page: 1, limit: 3, sortBy: 'price.ASC', userFilter: user.id };
+    let products: any = await connection.createQueryBuilder().select('*').from(ProductEntity, 'products').execute();
+    products = products.filter((productF: any) => {
+      if (String(productF?.userid) === user.id) return product;
+    });
+    products = products.sort((a: ProductEntity, b: ProductEntity) => (a.price < b.price ? -1 : 1));
+    products = products.slice(0, 3);
+    const productsMaped = products.map((product: ProductEntity) => {
+      return { id: product.id, name: product.name, price: String(product.price) };
+    });
+    await request(app.getHttpServer())
+      .get(`/products/read-product`)
+      .query(params)
+      .auth(accessToken, { type: 'bearer' })
+      .expect(({ status, body }) => {
+        expect(status).toBe(HttpStatus.OK);
+        expect(body.rows).toStrictEqual(productsMaped);
       });
   });
 });

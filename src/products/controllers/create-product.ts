@@ -1,17 +1,30 @@
 import { Body, Controller, Post, UseGuards, ValidationPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ApiBody, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
+
+import { GetUser } from '../../auth/get-user.decorator';
+import { UserEntity } from '../../users/entities/user.entity';
 import { CreateProductDto } from '../dtos/create-product';
+import { ResponseReadProductsDto } from '../dtos/response-read-products';
 import { CreateProduct } from '../use-cases/create-product';
 
 @Controller('products')
 export class CreateProductController {
   constructor(private createProduct: CreateProduct) {}
 
+  @ApiTags('Products')
+  @ApiCreatedResponse({ type: ResponseReadProductsDto })
+  @ApiBody({ type: CreateProductDto })
   @UseGuards(AuthGuard())
   @Post('/create-product')
-  async handleCreateProduct(@Body(ValidationPipe) createProductDto: CreateProductDto): Promise<{ message: string }> {
-    return this.createProduct.execute({
-      ...createProductDto,
+  async handleCreateProduct(
+    @Body(ValidationPipe) createProductDto: CreateProductDto,
+    @GetUser() user: UserEntity,
+  ): Promise<ResponseReadProductsDto> {
+    const product = this.createProduct.execute({
+      createProductDto,
+      user,
     });
+    return ResponseReadProductsDto.factory(ResponseReadProductsDto, product);
   }
 }

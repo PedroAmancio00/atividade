@@ -24,7 +24,6 @@ export class CreateUser implements ICreateUser {
       name,
       password: passwordHash,
     });
-    await this.userRepository.save(user);
-    return { message: 'User created' };
+    return await this.userRepository.save(user);
   }
 }

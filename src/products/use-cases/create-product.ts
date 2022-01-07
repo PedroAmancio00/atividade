@@ -12,11 +12,13 @@ export class CreateProduct implements ICreateProduct {
   ) {}
 
   async execute(params: ICreateProduct.Params): ICreateProduct.Response {
-    const { name } = params;
+    const { createProductDto, user } = params;
+    const { name, price } = createProductDto;
     const product = this.productRepository.create({
+      user: user,
       name,
+      price,
     });
-    await this.productRepository.save(product);
-    return { message: 'Product created' };
+    return this.productRepository.save(product);
   }
 }
